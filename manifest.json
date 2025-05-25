@@ -1,12 +1,12 @@
 {
-    "name": "SkyDrive",
-    "short_name": "SkyDrive",
+    "name": "Image Tools",
+    "short_name": "Image Tools",
     "start_url": "/index.html",
     "display": "standalone",
-    "background_color": "#5bc8ac",
-    "theme_color": "#5bc8ac",
+    "background_color": "#ffff",
+    "theme_color": "#ffff",
     "icons": [{
-        "src": "/bok.png",
+        "src": "/icon.png",
         "sizes": "192x192",
         "type": "image/png"
     }]
