@@ -4,7 +4,64 @@
   <link rel="manifest" href="/manifest.json">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ImageKit — Pro Image Tools</title>
+  <title>GunoPix — Free Online Image Tools by WebGuno</title>
+
+  <!-- ═══════════════════════════════════════
+       SEO — Primary Meta Tags
+  ═══════════════════════════════════════ -->
+  <meta name="title"       content="GunoPix — Free Online Image Tools by WebGuno">
+  <meta name="description" content="GunoPix by WebGuno: Resize images, convert JPG to PNG, and PNG to JPG — all free, fast, and private. No uploads to servers. Works in your browser.">
+  <meta name="keywords"    content="image resizer, jpg to png, png to jpg, image converter, resize image online, free image tools, gunopix, webguno, image compressor, photo resizer">
+  <meta name="author"      content="WebGuno">
+  <meta name="robots"      content="index, follow">
+  <meta name="theme-color" content="#4f6ef7">
+  <link rel="canonical"    href="https://gunopix.netlify.app/">
+
+  <!-- ═══════════════════════════════════════
+       Open Graph / Facebook
+  ═══════════════════════════════════════ -->
+  <meta property="og:type"        content="website">
+  <meta property="og:url"         content="https://gunopix.netlify.app/">
+  <meta property="og:title"       content="GunoPix — Free Online Image Tools by WebGuno">
+  <meta property="og:description" content="Resize, convert JPG↔PNG and more — all free, instant, and processed in your browser. No data leaves your device.">
+  <meta property="og:site_name"   content="GunoPix by WebGuno">
+
+  <!-- ═══════════════════════════════════════
+       Twitter Card
+  ═══════════════════════════════════════ -->
+  <meta name="twitter:card"        content="summary">
+  <meta name="twitter:url"         content="https://gunopix.netlify.app/">
+  <meta name="twitter:title"       content="GunoPix — Free Online Image Tools">
+  <meta name="twitter:description" content="Resize images, convert JPG to PNG &amp; PNG to JPG — free, fast, in-browser. By WebGuno.">
+
+  <!-- ═══════════════════════════════════════
+       Structured Data — WebApplication (JSON-LD)
+  ═══════════════════════════════════════ -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "GunoPix",
+    "url": "https://gunopix.netlify.app/",
+    "description": "Free online image tools: resize images, convert JPG to PNG, and PNG to JPG — all processed privately in your browser.",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Any",
+    "browserRequirements": "Requires JavaScript",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "author": {
+      "@type": "Organization",
+      "name": "WebGuno",
+      "url": "https://gunopix.netlify.app/"
+    },
+    "featureList": [
+      "Image Resizer",
+      "JPG to PNG Converter",
+      "PNG to JPG Converter",
+      "Rotation and Quality Control",
+      "Works Offline (PWA)"
+    ]
+  }
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -421,8 +478,8 @@
       <div class="brand">
         <div class="brand-mark">🖼️</div>
         <div class="brand-txt">
-          <div class="brand-name">ImageKit</div>
-          <div class="brand-sub">Pro Image Tools</div>
+          <div class="brand-name">GunoPix</div>
+          <div class="brand-sub">by WebGuno</div>
         </div>
       </div>
       <div class="hdr-actions">
@@ -660,6 +717,17 @@
   <canvas id="j2pCanvas" style="display:none"></canvas>
   <canvas id="p2jCanvas" style="display:none"></canvas>
 
+  <!-- FOOTER CREDIT -->
+  <div style="text-align:center;padding:10px 16px 80px;font-size:11px;color:var(--text3);line-height:1.7;">
+    Made with <span style="color:var(--red)">♥</span> by
+    <a href="https://gunopix.netlify.app/" target="_blank" rel="noopener"
+       style="color:var(--accent-lt);font-weight:600;text-decoration:none;letter-spacing:0.2px;">WebGuno</a>
+    &nbsp;·&nbsp;
+    <a href="https://gunopix.netlify.app/" target="_blank" rel="noopener"
+       style="color:var(--text3);text-decoration:none;">gunopix.netlify.app</a>
+    &nbsp;·&nbsp; All processing is done locally in your browser. No data is uploaded.
+  </div>
+
 </div><!-- /shell -->
 
 <script>
@@ -667,10 +735,10 @@
 const html = document.documentElement;
 function applyTheme(t){
   html.setAttribute('data-theme',t);
-  localStorage.setItem('imgkit-theme',t);
+  localStorage.setItem('gunopix-theme',t);
   document.getElementById('themeIco').className = t==='dark' ? 'fas fa-sun' : 'fas fa-moon';
 }
-applyTheme(localStorage.getItem('imgkit-theme')||'dark');
+applyTheme(localStorage.getItem('gunopix-theme')||'dark');
 document.getElementById('themeBtn').addEventListener('click', ()=>
   applyTheme(html.getAttribute('data-theme')==='dark'?'light':'dark')
 );
