@@ -1,6 +1,6 @@
 {
-    "name": "Image Tools",
-    "short_name": "Image Tools",
+    "name": "GunoPix",
+    "short_name": "GunoPix",
     "start_url": "/index.html",
     "display": "standalone",
     "background_color": "#ffff",
