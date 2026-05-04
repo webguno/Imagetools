@@ -551,8 +551,8 @@
                 <div class="tog on" id="smoothTog"><input type="checkbox" id="smoothCb" checked></div>
               </div>
               <div class="info-grid">
-                <div class="info-tile"><div class="info-lbl">New Size</div><div class="info-val" id="newDimTile">—</div></div>
-                <div class="info-tile"><div class="info-lbl">Est. File</div><div class="info-val" id="estSizeTile">—</div></div>
+                <div class="info-tile"><div class="info-lbl">Output Size</div><div class="info-val" id="newDimTile">—</div></div>
+                <div class="info-tile"><div class="info-lbl">Actual File</div><div class="info-val" id="estSizeTile">—</div></div>
               </div>
             </div>
           </div>
@@ -812,11 +812,12 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
 }));
 
 // ══════════════════════════════════════
-//  RESIZER - FIXED LOGIC
+//  RESIZER - FIXED: ACTUAL BLOB SIZE
 // ══════════════════════════════════════
 (function(){
   let img=null,ow=0,oh=0,oSz=0,sc=100,rot=0,qual=90;
-  let previewUpdateTimer = null; // Debounce timer for preview updates
+  let cachedBlob = null; // Cache the actual compressed blob
+  let previewUpdateTimer = null;
   
   const drop=document.getElementById('resizerDrop');
   const fi=document.getElementById('resizerFile');
@@ -829,6 +830,8 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
   const wI=document.getElementById('wInput'), hI=document.getElementById('hInput');
   const lockCb=document.getElementById('lockCb'), smCb=document.getElementById('smoothCb');
   const canvas=document.getElementById('rszCanvas'), ctx=canvas.getContext('2d');
+  const newDimTile = document.getElementById('newDimTile');
+  const estSizeTile = document.getElementById('estSizeTile');
 
   document.getElementById('resizerBrowse').addEventListener('click',e=>{e.stopPropagation();fi.click();});
   drop.addEventListener('click',()=>fi.click());
@@ -847,8 +850,8 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
         reset(); 
         lo.classList.remove('show'); 
         setPrev('resizer',true);
-        // Initial preview render with canvas for accuracy
-        updatePreviewCanvas();
+        // Generate actual blob for accurate size display
+        generateAndCacheBlob();
       }; img.src=ev.target.result;
     }; r.readAsDataURL(file);
   }
@@ -856,7 +859,7 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
   function syncSC(v){ document.querySelectorAll('#scaleChips .chip').forEach(c=>c.classList.toggle('on',+c.dataset.s===v)); }
   function syncRT(v){ document.querySelectorAll('#rotChips .chip').forEach(c=>c.classList.toggle('on',+c.dataset.r===v)); }
 
-  // ✅ FIXED: Calculate actual output dimensions after rotation
+  // Calculate actual output dimensions after rotation
   function getOutputDimensions(w, h, rotationDeg) {
     const rad = rotationDeg * Math.PI / 180;
     const s = Math.abs(Math.sin(rad)), c = Math.abs(Math.cos(rad));
@@ -866,23 +869,53 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
     };
   }
 
-  // ✅ FIXED: More accurate file size estimation
-  function estimateFileSize(origSize, origW, origH, newW, newH, quality) {
-    // Base compression ratio estimate + rotation overhead
-    const areaRatio = (newW * newH) / (origW * origH || 1);
-    const qualityFactor = quality / 100;
-    // JPEG compression isn't linear, add slight overhead for rotation
-    const rotationOverhead = 1.05; 
-    return Math.round(origSize * areaRatio * qualityFactor * rotationOverhead);
-  }
-
-  function info(){
-    const nw=parseInt(wI.value)||ow, nh=parseInt(hI.value)||oh;
-    // ✅ FIXED: Show actual output dimensions after rotation
-    const outDim = getOutputDimensions(nw, nh, rot);
-    document.getElementById('newDimTile').textContent = outDim.width + '×' + outDim.height;
-    // ✅ FIXED: Better estimation
-    document.getElementById('estSizeTile').textContent = fmt(estimateFileSize(oSz, ow, oh, nw, nh, qual));
+  // ✅ KEY FIX: Actually compress to get REAL file size
+  async function generateAndCacheBlob() {
+    if (!img) return;
+    
+    const nw = parseInt(wI.value) || ow;
+    const nh = parseInt(hI.value) || oh;
+    const rad = rot * Math.PI / 180;
+    const s = Math.abs(Math.sin(rad)), c = Math.abs(Math.cos(rad));
+    
+    // Calculate canvas size for rotated image
+    const outW = Math.max(1, Math.ceil(nw * c + nh * s));
+    const outH = Math.max(1, Math.ceil(nw * s + nh * c));
+    
+    canvas.width = outW;
+    canvas.height = outH;
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingEnabled = smCb.checked;
+    ctx.imageSmoothingQuality = 'high';
+    
+    // Draw rotated image
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(rad);
+    ctx.drawImage(img, -nw / 2, -nh / 2, nw, nh);
+    
+    // Generate actual blob with current quality
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => {
+        if (blob) {
+          cachedBlob = blob;
+          // Update UI with ACTUAL size
+          newDimTile.textContent = outW + '×' + outH;
+          estSizeTile.textContent = fmt(blob.size);
+          
+          // Update preview with compressed version (scaled for performance)
+          const previewScale = Math.min(1, 400 / Math.max(outW, outH));
+          const previewCanvas = document.createElement('canvas');
+          previewCanvas.width = Math.max(1, Math.floor(outW * previewScale));
+          previewCanvas.height = Math.max(1, Math.floor(outH * previewScale));
+          const pCtx = previewCanvas.getContext('2d');
+          pCtx.imageSmoothingEnabled = smCb.checked;
+          pCtx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height);
+          pi.src = previewCanvas.toDataURL('image/jpeg', qual / 100);
+        }
+        resolve(blob);
+      }, 'image/jpeg', qual / 100);
+    });
   }
 
   function reset(){
@@ -893,156 +926,128 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
     document.getElementById('lockTog').classList.add('on');lockCb.checked=true;
     document.getElementById('smoothTog').classList.add('on');smCb.checked=true;
     wI.value=ow;hI.value=oh;
-    pi.style.transform=''; // Reset CSS transform
-    syncSC(100);syncRT(0);info();
+    pi.style.transform='';
+    syncSC(100);syncRT(0);
+    cachedBlob = null;
+    newDimTile.textContent = '—';
+    estSizeTile.textContent = '—';
   }
 
-  // ✅ FIXED: Debounced preview update using canvas rendering
-  function updatePreviewCanvas() {
-    if (!img) return;
-    
-    // Clear previous debounce timer
+  // Debounced update function
+  function scheduleBlobUpdate() {
     if (previewUpdateTimer) clearTimeout(previewUpdateTimer);
-    
     previewUpdateTimer = setTimeout(() => {
-      const nw = parseInt(wI.value) || ow;
-      const nh = parseInt(hI.value) || oh;
-      const rad = rot * Math.PI / 180;
-      const s = Math.abs(Math.sin(rad)), c = Math.abs(Math.cos(rad));
-      
-      // Calculate canvas size for rotated image
-      canvas.width = Math.max(1, Math.ceil(nw * c + nh * s));
-      canvas.height = Math.max(1, Math.ceil(nw * s + nh * c));
-      
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.imageSmoothingEnabled = smCb.checked;
-      ctx.imageSmoothingQuality = 'high';
-      
-      // Draw rotated image
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.rotate(rad);
-      ctx.drawImage(img, -nw / 2, -nh / 2, nw, nh);
-      
-      // Update preview with canvas output at current quality
-      // Use lower resolution for preview to maintain performance
-      const previewScale = Math.min(1, 400 / Math.max(canvas.width, canvas.height));
-      const previewCanvas = document.createElement('canvas');
-      previewCanvas.width = Math.max(1, Math.floor(canvas.width * previewScale));
-      previewCanvas.height = Math.max(1, Math.floor(canvas.height * previewScale));
-      const pCtx = previewCanvas.getContext('2d');
-      pCtx.imageSmoothingEnabled = smCb.checked;
-      pCtx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height);
-      
-      // Apply quality for preview (note: toDataURL quality only works for JPEG)
-      pi.src = pCtx.canvas.toDataURL('image/jpeg', qual / 100);
-      
-      // Update displayed dimensions to match actual output
-      const outDim = getOutputDimensions(nw, nh, rot);
-      document.getElementById('newDimTile').textContent = outDim.width + '×' + outDim.height;
-      
-    }, 150); // 150ms debounce for smooth UX
+      generateAndCacheBlob();
+    }, 200); // 200ms debounce
   }
 
-  // Event listeners with preview updates
+  // Event listeners
   scSl.addEventListener('input',function(){
     sc=+this.value;scV.textContent=sc+'%';
     wI.value=Math.round(ow*sc/100);hI.value=Math.round(oh*sc/100);
-    syncSC(sc);info();
-    updatePreviewCanvas(); // ✅ FIXED: Update preview
+    syncSC(sc);
+    scheduleBlobUpdate();
   });
   
   document.querySelectorAll('#scaleChips .chip').forEach(c=>c.addEventListener('click',()=>{
     sc=+c.dataset.s;scSl.value=sc;scV.textContent=sc+'%';
     wI.value=Math.round(ow*sc/100);hI.value=Math.round(oh*sc/100);
-    syncSC(sc);info();
-    updatePreviewCanvas(); // ✅ FIXED: Update preview
+    syncSC(sc);
+    scheduleBlobUpdate();
   }));
 
   rtSl.addEventListener('input',function(){
     rot=+this.value;rtV.textContent=rot+'°';
-    // ✅ FIXED: Remove CSS transform, let canvas handle rotation
-    pi.style.transform = ''; 
+    pi.style.transform = '';
     syncRT(rot);
-    info();
-    updatePreviewCanvas(); // ✅ FIXED: Update preview with actual rotation
+    scheduleBlobUpdate();
   });
   
   document.querySelectorAll('#rotChips .chip').forEach(c=>c.addEventListener('click',()=>{
     rot=+c.dataset.r;rtSl.value=rot;rtV.textContent=rot+'°';
     pi.style.transform = '';
     syncRT(rot);
-    info();
-    updatePreviewCanvas(); // ✅ FIXED: Update preview
+    scheduleBlobUpdate();
   }));
 
   qlSl.addEventListener('input',function(){ 
     qual=+this.value;qlV.textContent=qual+'%';
-    info();
-    updatePreviewCanvas(); // ✅ FIXED: Show compression artifacts in preview
+    scheduleBlobUpdate();
   });
 
   wI.addEventListener('input',function(){
     if(!img) return; const v=parseInt(this.value); if(!v||v<1) return;
     if(lockCb.checked) hI.value=Math.round(v*oh/ow);
     sc=Math.round(v/ow*100);scSl.value=Math.min(200,Math.max(10,sc));scV.textContent=sc+'%';
-    syncSC(sc);info();
-    updatePreviewCanvas(); // ✅ FIXED: Update preview
+    syncSC(sc);
+    scheduleBlobUpdate();
   });
   
   hI.addEventListener('input',function(){
     if(!img) return; const v=parseInt(this.value); if(!v||v<1) return;
     if(lockCb.checked) wI.value=Math.round(v*ow/oh);
     sc=Math.round(v/oh*100);scSl.value=Math.min(200,Math.max(10,sc));scV.textContent=sc+'%';
-    syncSC(sc);info();
-    updatePreviewCanvas(); // ✅ FIXED: Update preview
+    syncSC(sc);
+    scheduleBlobUpdate();
   });
 
   document.getElementById('rszDownload').addEventListener('click',()=>{
-    if(!img) return; lo.classList.add('show');
-    const nw=parseInt(wI.value)||ow,nh=parseInt(hI.value)||oh;
-    const rad=rot*Math.PI/180,s=Math.abs(Math.sin(rad)),c2=Math.abs(Math.cos(rad));
+    if(!img) return;
     
-    // ✅ FIXED: Ensure canvas is properly sized for output
-    canvas.width=Math.max(1, Math.ceil(nw*c2+nh*s)); 
-    canvas.height=Math.max(1, Math.ceil(nw*s+nh*c2));
+    // If we have a cached blob, use it instantly
+    if (cachedBlob) {
+      const a=document.createElement('a'); 
+      a.href=URL.createObjectURL(cachedBlob);
+      const nw=parseInt(wI.value)||ow,nh=parseInt(hI.value)||oh;
+      a.download='resized-'+nw+'x'+nh+'.jpg'; 
+      a.click(); 
+      URL.revokeObjectURL(a.href);
+      toast('Image downloaded!');
+      return;
+    }
     
-    ctx.clearRect(0, 0, canvas.width, canvas.height); // ✅ FIXED: Clear canvas first
-    ctx.imageSmoothingEnabled=smCb.checked; 
-    ctx.imageSmoothingQuality='high';
-    ctx.translate(canvas.width/2,canvas.height/2); 
-    ctx.rotate(rad);
-    ctx.drawImage(img,-nw/2,-nh/2,nw,nh);
-    
-    canvas.toBlob(blob=>{
-      const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-      a.download='resized-'+nw+'x'+nh+'.jpg'; a.click(); URL.revokeObjectURL(a.href);
-      lo.classList.remove('show'); toast('Image downloaded!');
-    },'image/jpeg',qual/100);
+    // Fallback: generate on download (should rarely happen)
+    lo.classList.add('show');
+    generateAndCacheBlob().then(blob => {
+      if (blob) {
+        const a=document.createElement('a'); 
+        a.href=URL.createObjectURL(blob);
+        const nw=parseInt(wI.value)||ow,nh=parseInt(hI.value)||oh;
+        a.download='resized-'+nw+'x'+nh+'.jpg'; 
+        a.click(); 
+        URL.revokeObjectURL(a.href);
+        lo.classList.remove('show'); 
+        toast('Image downloaded!');
+      }
+    });
   });
   
   document.getElementById('rszReset').addEventListener('click',()=>{ 
     if(img) {
       reset(); 
-      updatePreviewCanvas(); // ✅ FIXED: Refresh preview after reset
+      generateAndCacheBlob();
     } 
   });
   
   document.getElementById('rszClear').addEventListener('click',()=>{
     img=null;pi.src='';pw.style.display='none';fi.value='';
-    // ✅ FIXED: Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    cachedBlob = null;
+    newDimTile.textContent = '—';
+    estSizeTile.textContent = '—';
     setPrev('resizer',false);
   });
 })();
 
 // ══════════════════════════════════════
-//  JPG → PNG - FIXED LOGIC
+//  JPG → PNG - FIXED: ACTUAL BLOB SIZE
 // ══════════════════════════════════════
 (function(){
-  let img=null;
+  let img=null, cachedBlob=null;
   const drop=document.getElementById('j2pDrop'),fi=document.getElementById('j2pFile');
   const pw=document.getElementById('j2pPW'),pi=document.getElementById('j2pImg'),lo=document.getElementById('j2pLoad');
   const canvas=document.getElementById('j2pCanvas'),ctx=canvas.getContext('2d');
+  const j2pSizeEl = document.getElementById('j2pSize');
 
   document.getElementById('j2pBrowse').addEventListener('click',e=>{e.stopPropagation();fi.click();});
   drop.addEventListener('click',()=>fi.click());
@@ -1054,53 +1059,53 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
     lo.classList.add('show');
     const r=new FileReader(); r.onload=ev=>{
       img=new Image(); img.onload=function(){
-        // ✅ FIXED: Use canvas for preview to match download output exactly
         canvas.width = this.width;
         canvas.height = this.height;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0);
         
-        // Preview with PNG (lossless, matches download)
-        pi.src = canvas.toDataURL('image/png');
-        
-        document.getElementById('j2pDim').textContent=this.width+'×'+this.height;
-        document.getElementById('j2pSize').textContent=fmt(file.size);
-        pw.style.display='flex';lo.classList.remove('show');setPrev('jpg2png',true);
+        // Generate actual PNG blob for accurate size
+        canvas.toBlob((blob) => {
+          if (blob) {
+            cachedBlob = blob;
+            pi.src = URL.createObjectURL(blob);
+            document.getElementById('j2pDim').textContent=this.width+'×'+this.height;
+            // Show ACTUAL output size
+            j2pSizeEl.textContent = fmt(blob.size) + ' (was ' + fmt(file.size) + ')';
+            pw.style.display='flex';lo.classList.remove('show');setPrev('jpg2png',true);
+          }
+        }, 'image/png');
       }; img.src=ev.target.result;
     }; r.readAsDataURL(file);
   }
   
   document.getElementById('j2pDownload').addEventListener('click',()=>{
-    if(!img) return; lo.classList.add('show');
-    // ✅ FIXED: Ensure canvas is clean and properly sized
-    canvas.width = img.width;
-    canvas.height = img.height;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0);
-    
+    if(!img || !cachedBlob) return;
     const a=document.createElement('a');
-    a.href=canvas.toDataURL('image/png');
+    a.href=URL.createObjectURL(cachedBlob);
     a.download='converted-'+Date.now()+'.png';
     a.click();
-    lo.classList.remove('show');toast('PNG downloaded!');
+    URL.revokeObjectURL(a.href);
+    toast('PNG downloaded!');
   });
   
   document.getElementById('j2pClear').addEventListener('click',()=>{
     img=null;pi.src='';pw.style.display='none';fi.value='';
-    // ✅ FIXED: Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    cachedBlob = null;
     setPrev('jpg2png',false);
   });
 })();
 
 // ══════════════════════════════════════
-//  PNG → JPG - FIXED LOGIC
+//  PNG → JPG - FIXED: ACTUAL BLOB SIZE
 // ══════════════════════════════════════
 (function(){
-  let img=null;
+  let img=null, cachedBlob=null;
   const drop=document.getElementById('p2jDrop'),fi=document.getElementById('p2jFile');
   const pw=document.getElementById('p2jPW'),pi=document.getElementById('p2jImg'),lo=document.getElementById('p2jLoad');
   const canvas=document.getElementById('p2jCanvas'),ctx=canvas.getContext('2d');
+  const p2jSizeEl = document.getElementById('p2jSize');
 
   document.getElementById('p2jBrowse').addEventListener('click',e=>{e.stopPropagation();fi.click();});
   drop.addEventListener('click',()=>fi.click());
@@ -1112,43 +1117,40 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
     lo.classList.add('show');
     const r=new FileReader(); r.onload=ev=>{
       img=new Image(); img.onload=function(){
-        // ✅ FIXED: Use same canvas operations for preview and download
         canvas.width=this.width;canvas.height=this.height;
-        ctx.clearRect(0, 0, canvas.width, canvas.height); // ✅ Clear first
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle='#FFFFFF';ctx.fillRect(0,0,canvas.width,canvas.height);
         ctx.drawImage(img,0,0);
         
-        // ✅ FIXED: Use same quality (0.95) for preview as download
-        pi.src=canvas.toDataURL('image/jpeg',0.95);
-        
-        document.getElementById('p2jDim').textContent=this.width+'×'+this.height;
-        document.getElementById('p2jSize').textContent=fmt(file.size);
-        pw.style.display='flex';lo.classList.remove('show');setPrev('png2jpg',true);
+        // Generate actual JPG blob for accurate size
+        canvas.toBlob((blob) => {
+          if (blob) {
+            cachedBlob = blob;
+            pi.src = URL.createObjectURL(blob);
+            document.getElementById('p2jDim').textContent=this.width+'×'+this.height;
+            // Show ACTUAL output size with comparison
+            p2jSizeEl.textContent = fmt(blob.size) + ' (was ' + fmt(file.size) + ')';
+            pw.style.display='flex';lo.classList.remove('show');setPrev('png2jpg',true);
+          }
+        }, 'image/jpeg', 0.95);
       }; img.src=ev.target.result;
     }; r.readAsDataURL(file);
   }
   
   document.getElementById('p2jDownload').addEventListener('click',()=>{
-    if(!img) return; lo.classList.add('show');
-    // ✅ FIXED: Re-render canvas to ensure clean state
-    canvas.width = img.width;
-    canvas.height = img.height;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle='#FFFFFF';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-    ctx.drawImage(img,0,0);
-    
-    canvas.toBlob(blob=>{
-      const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-      a.download='converted-'+Date.now()+'.jpg';a.click();URL.revokeObjectURL(a.href);
-      lo.classList.remove('show');toast('JPG downloaded!');
-    },'image/jpeg',0.95);
+    if(!img || !cachedBlob) return;
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(cachedBlob);
+    a.download='converted-'+Date.now()+'.jpg';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast('JPG downloaded!');
   });
   
   document.getElementById('p2jClear').addEventListener('click',()=>{
     img=null;pi.src='';pw.style.display='none';fi.value='';
-    // ✅ FIXED: Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    cachedBlob = null;
     setPrev('png2jpg',false);
   });
 })();
