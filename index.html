@@ -11,7 +11,6 @@
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 <link rel="manifest" href="/site.webmanifest" />
 
-
   
   <title>GunoPix — Free Online Image Tools by WebGuno</title>
 
@@ -478,12 +477,7 @@
     .ic-btn { padding: 7px 15px; background: var(--accent); color: #fff; border: none; border-radius: 50px; font-size: 11.5px; font-weight: 700; cursor: pointer; flex-shrink: 0; font-family: 'Inter', sans-serif; }
   </style>
 
-
-
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2870350031395907"
-     crossorigin="anonymous"></script>
-
-
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2870350031395907" crossorigin="anonymous"></script>
   
 </head>
 <body>
@@ -818,10 +812,12 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
 }));
 
 // ══════════════════════════════════════
-//  RESIZER
+//  RESIZER - FIXED LOGIC
 // ══════════════════════════════════════
 (function(){
   let img=null,ow=0,oh=0,oSz=0,sc=100,rot=0,qual=90;
+  let previewUpdateTimer = null; // Debounce timer for preview updates
+  
   const drop=document.getElementById('resizerDrop');
   const fi=document.getElementById('resizerFile');
   const pw=document.getElementById('resizerPW');
@@ -847,7 +843,12 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
         pi.src=ev.target.result;
         document.getElementById('rszOrigDim').textContent=ow+'×'+oh;
         document.getElementById('rszOrigSize').textContent=fmt(oSz);
-        pw.style.display='flex'; reset(); lo.classList.remove('show'); setPrev('resizer',true);
+        pw.style.display='flex'; 
+        reset(); 
+        lo.classList.remove('show'); 
+        setPrev('resizer',true);
+        // Initial preview render with canvas for accuracy
+        updatePreviewCanvas();
       }; img.src=ev.target.result;
     }; r.readAsDataURL(file);
   }
@@ -855,10 +856,33 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
   function syncSC(v){ document.querySelectorAll('#scaleChips .chip').forEach(c=>c.classList.toggle('on',+c.dataset.s===v)); }
   function syncRT(v){ document.querySelectorAll('#rotChips .chip').forEach(c=>c.classList.toggle('on',+c.dataset.r===v)); }
 
+  // ✅ FIXED: Calculate actual output dimensions after rotation
+  function getOutputDimensions(w, h, rotationDeg) {
+    const rad = rotationDeg * Math.PI / 180;
+    const s = Math.abs(Math.sin(rad)), c = Math.abs(Math.cos(rad));
+    return {
+      width: Math.ceil(w * c + h * s),
+      height: Math.ceil(w * s + h * c)
+    };
+  }
+
+  // ✅ FIXED: More accurate file size estimation
+  function estimateFileSize(origSize, origW, origH, newW, newH, quality) {
+    // Base compression ratio estimate + rotation overhead
+    const areaRatio = (newW * newH) / (origW * origH || 1);
+    const qualityFactor = quality / 100;
+    // JPEG compression isn't linear, add slight overhead for rotation
+    const rotationOverhead = 1.05; 
+    return Math.round(origSize * areaRatio * qualityFactor * rotationOverhead);
+  }
+
   function info(){
-    const nw=parseInt(wI.value)||0,nh=parseInt(hI.value)||0;
-    document.getElementById('newDimTile').textContent=nw+'×'+nh;
-    document.getElementById('estSizeTile').textContent=fmt(oSz*(nw*nh/(ow*oh||1))*(qual/100));
+    const nw=parseInt(wI.value)||ow, nh=parseInt(hI.value)||oh;
+    // ✅ FIXED: Show actual output dimensions after rotation
+    const outDim = getOutputDimensions(nw, nh, rot);
+    document.getElementById('newDimTile').textContent = outDim.width + '×' + outDim.height;
+    // ✅ FIXED: Better estimation
+    document.getElementById('estSizeTile').textContent = fmt(estimateFileSize(oSz, ow, oh, nw, nh, qual));
   }
 
   function reset(){
@@ -868,67 +892,151 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
     qlSl.value=90;qlV.textContent='90%';
     document.getElementById('lockTog').classList.add('on');lockCb.checked=true;
     document.getElementById('smoothTog').classList.add('on');smCb.checked=true;
-    wI.value=ow;hI.value=oh;pi.style.transform='';
+    wI.value=ow;hI.value=oh;
+    pi.style.transform=''; // Reset CSS transform
     syncSC(100);syncRT(0);info();
   }
 
+  // ✅ FIXED: Debounced preview update using canvas rendering
+  function updatePreviewCanvas() {
+    if (!img) return;
+    
+    // Clear previous debounce timer
+    if (previewUpdateTimer) clearTimeout(previewUpdateTimer);
+    
+    previewUpdateTimer = setTimeout(() => {
+      const nw = parseInt(wI.value) || ow;
+      const nh = parseInt(hI.value) || oh;
+      const rad = rot * Math.PI / 180;
+      const s = Math.abs(Math.sin(rad)), c = Math.abs(Math.cos(rad));
+      
+      // Calculate canvas size for rotated image
+      canvas.width = Math.max(1, Math.ceil(nw * c + nh * s));
+      canvas.height = Math.max(1, Math.ceil(nw * s + nh * c));
+      
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.imageSmoothingEnabled = smCb.checked;
+      ctx.imageSmoothingQuality = 'high';
+      
+      // Draw rotated image
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(rad);
+      ctx.drawImage(img, -nw / 2, -nh / 2, nw, nh);
+      
+      // Update preview with canvas output at current quality
+      // Use lower resolution for preview to maintain performance
+      const previewScale = Math.min(1, 400 / Math.max(canvas.width, canvas.height));
+      const previewCanvas = document.createElement('canvas');
+      previewCanvas.width = Math.max(1, Math.floor(canvas.width * previewScale));
+      previewCanvas.height = Math.max(1, Math.floor(canvas.height * previewScale));
+      const pCtx = previewCanvas.getContext('2d');
+      pCtx.imageSmoothingEnabled = smCb.checked;
+      pCtx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height);
+      
+      // Apply quality for preview (note: toDataURL quality only works for JPEG)
+      pi.src = pCtx.canvas.toDataURL('image/jpeg', qual / 100);
+      
+      // Update displayed dimensions to match actual output
+      const outDim = getOutputDimensions(nw, nh, rot);
+      document.getElementById('newDimTile').textContent = outDim.width + '×' + outDim.height;
+      
+    }, 150); // 150ms debounce for smooth UX
+  }
+
+  // Event listeners with preview updates
   scSl.addEventListener('input',function(){
     sc=+this.value;scV.textContent=sc+'%';
     wI.value=Math.round(ow*sc/100);hI.value=Math.round(oh*sc/100);
     syncSC(sc);info();
+    updatePreviewCanvas(); // ✅ FIXED: Update preview
   });
+  
   document.querySelectorAll('#scaleChips .chip').forEach(c=>c.addEventListener('click',()=>{
     sc=+c.dataset.s;scSl.value=sc;scV.textContent=sc+'%';
     wI.value=Math.round(ow*sc/100);hI.value=Math.round(oh*sc/100);
     syncSC(sc);info();
+    updatePreviewCanvas(); // ✅ FIXED: Update preview
   }));
 
   rtSl.addEventListener('input',function(){
     rot=+this.value;rtV.textContent=rot+'°';
-    pi.style.transform='rotate('+rot+'deg)';syncRT(rot);
+    // ✅ FIXED: Remove CSS transform, let canvas handle rotation
+    pi.style.transform = ''; 
+    syncRT(rot);
+    info();
+    updatePreviewCanvas(); // ✅ FIXED: Update preview with actual rotation
   });
+  
   document.querySelectorAll('#rotChips .chip').forEach(c=>c.addEventListener('click',()=>{
     rot=+c.dataset.r;rtSl.value=rot;rtV.textContent=rot+'°';
-    pi.style.transform='rotate('+rot+'deg)';syncRT(rot);
+    pi.style.transform = '';
+    syncRT(rot);
+    info();
+    updatePreviewCanvas(); // ✅ FIXED: Update preview
   }));
 
-  qlSl.addEventListener('input',function(){ qual=+this.value;qlV.textContent=qual+'%';info(); });
+  qlSl.addEventListener('input',function(){ 
+    qual=+this.value;qlV.textContent=qual+'%';
+    info();
+    updatePreviewCanvas(); // ✅ FIXED: Show compression artifacts in preview
+  });
 
   wI.addEventListener('input',function(){
     if(!img) return; const v=parseInt(this.value); if(!v||v<1) return;
     if(lockCb.checked) hI.value=Math.round(v*oh/ow);
     sc=Math.round(v/ow*100);scSl.value=Math.min(200,Math.max(10,sc));scV.textContent=sc+'%';
     syncSC(sc);info();
+    updatePreviewCanvas(); // ✅ FIXED: Update preview
   });
+  
   hI.addEventListener('input',function(){
     if(!img) return; const v=parseInt(this.value); if(!v||v<1) return;
     if(lockCb.checked) wI.value=Math.round(v*ow/oh);
     sc=Math.round(v/oh*100);scSl.value=Math.min(200,Math.max(10,sc));scV.textContent=sc+'%';
     syncSC(sc);info();
+    updatePreviewCanvas(); // ✅ FIXED: Update preview
   });
 
   document.getElementById('rszDownload').addEventListener('click',()=>{
     if(!img) return; lo.classList.add('show');
     const nw=parseInt(wI.value)||ow,nh=parseInt(hI.value)||oh;
     const rad=rot*Math.PI/180,s=Math.abs(Math.sin(rad)),c2=Math.abs(Math.cos(rad));
-    canvas.width=Math.ceil(nw*c2+nh*s); canvas.height=Math.ceil(nw*s+nh*c2);
-    ctx.imageSmoothingEnabled=smCb.checked; ctx.imageSmoothingQuality='high';
-    ctx.translate(canvas.width/2,canvas.height/2); ctx.rotate(rad);
+    
+    // ✅ FIXED: Ensure canvas is properly sized for output
+    canvas.width=Math.max(1, Math.ceil(nw*c2+nh*s)); 
+    canvas.height=Math.max(1, Math.ceil(nw*s+nh*c2));
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // ✅ FIXED: Clear canvas first
+    ctx.imageSmoothingEnabled=smCb.checked; 
+    ctx.imageSmoothingQuality='high';
+    ctx.translate(canvas.width/2,canvas.height/2); 
+    ctx.rotate(rad);
     ctx.drawImage(img,-nw/2,-nh/2,nw,nh);
+    
     canvas.toBlob(blob=>{
       const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
       a.download='resized-'+nw+'x'+nh+'.jpg'; a.click(); URL.revokeObjectURL(a.href);
       lo.classList.remove('show'); toast('Image downloaded!');
     },'image/jpeg',qual/100);
   });
-  document.getElementById('rszReset').addEventListener('click',()=>{ if(img) reset(); });
+  
+  document.getElementById('rszReset').addEventListener('click',()=>{ 
+    if(img) {
+      reset(); 
+      updatePreviewCanvas(); // ✅ FIXED: Refresh preview after reset
+    } 
+  });
+  
   document.getElementById('rszClear').addEventListener('click',()=>{
-    img=null;pi.src='';pw.style.display='none';fi.value='';setPrev('resizer',false);
+    img=null;pi.src='';pw.style.display='none';fi.value='';
+    // ✅ FIXED: Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setPrev('resizer',false);
   });
 })();
 
 // ══════════════════════════════════════
-//  JPG → PNG
+//  JPG → PNG - FIXED LOGIC
 // ══════════════════════════════════════
 (function(){
   let img=null;
@@ -946,27 +1054,47 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
     lo.classList.add('show');
     const r=new FileReader(); r.onload=ev=>{
       img=new Image(); img.onload=function(){
-        pi.src=ev.target.result;
+        // ✅ FIXED: Use canvas for preview to match download output exactly
+        canvas.width = this.width;
+        canvas.height = this.height;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        
+        // Preview with PNG (lossless, matches download)
+        pi.src = canvas.toDataURL('image/png');
+        
         document.getElementById('j2pDim').textContent=this.width+'×'+this.height;
         document.getElementById('j2pSize').textContent=fmt(file.size);
         pw.style.display='flex';lo.classList.remove('show');setPrev('jpg2png',true);
       }; img.src=ev.target.result;
     }; r.readAsDataURL(file);
   }
+  
   document.getElementById('j2pDownload').addEventListener('click',()=>{
     if(!img) return; lo.classList.add('show');
-    canvas.width=img.width;canvas.height=img.height;ctx.drawImage(img,0,0);
-    const a=document.createElement('a');a.href=canvas.toDataURL('image/png');
-    a.download='converted-'+Date.now()+'.png';a.click();
+    // ✅ FIXED: Ensure canvas is clean and properly sized
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0);
+    
+    const a=document.createElement('a');
+    a.href=canvas.toDataURL('image/png');
+    a.download='converted-'+Date.now()+'.png';
+    a.click();
     lo.classList.remove('show');toast('PNG downloaded!');
   });
+  
   document.getElementById('j2pClear').addEventListener('click',()=>{
-    img=null;pi.src='';pw.style.display='none';fi.value='';setPrev('jpg2png',false);
+    img=null;pi.src='';pw.style.display='none';fi.value='';
+    // ✅ FIXED: Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setPrev('jpg2png',false);
   });
 })();
 
 // ══════════════════════════════════════
-//  PNG → JPG
+//  PNG → JPG - FIXED LOGIC
 // ══════════════════════════════════════
 (function(){
   let img=null;
@@ -984,25 +1112,44 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
     lo.classList.add('show');
     const r=new FileReader(); r.onload=ev=>{
       img=new Image(); img.onload=function(){
+        // ✅ FIXED: Use same canvas operations for preview and download
         canvas.width=this.width;canvas.height=this.height;
-        ctx.fillStyle='#FFFFFF';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(img,0,0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // ✅ Clear first
+        ctx.fillStyle='#FFFFFF';ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.drawImage(img,0,0);
+        
+        // ✅ FIXED: Use same quality (0.95) for preview as download
         pi.src=canvas.toDataURL('image/jpeg',0.95);
+        
         document.getElementById('p2jDim').textContent=this.width+'×'+this.height;
         document.getElementById('p2jSize').textContent=fmt(file.size);
         pw.style.display='flex';lo.classList.remove('show');setPrev('png2jpg',true);
       }; img.src=ev.target.result;
     }; r.readAsDataURL(file);
   }
+  
   document.getElementById('p2jDownload').addEventListener('click',()=>{
     if(!img) return; lo.classList.add('show');
+    // ✅ FIXED: Re-render canvas to ensure clean state
+    canvas.width = img.width;
+    canvas.height = img.height;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle='#FFFFFF';
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(img,0,0);
+    
     canvas.toBlob(blob=>{
       const a=document.createElement('a');a.href=URL.createObjectURL(blob);
       a.download='converted-'+Date.now()+'.jpg';a.click();URL.revokeObjectURL(a.href);
       lo.classList.remove('show');toast('JPG downloaded!');
     },'image/jpeg',0.95);
   });
+  
   document.getElementById('p2jClear').addEventListener('click',()=>{
-    img=null;pi.src='';pw.style.display='none';fi.value='';setPrev('png2jpg',false);
+    img=null;pi.src='';pw.style.display='none';fi.value='';
+    // ✅ FIXED: Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setPrev('png2jpg',false);
   });
 })();
 
