@@ -1,0 +1,2 @@
+# Authorized digital sellers for gunopix.netlify.app
+google.com, pub-2870350031395907, DIRECT, f08c47fec0942fa0
