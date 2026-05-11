@@ -72,8 +72,7 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0,0&display=swap" rel="stylesheet">
 
   <style>
     /* ═══════════════════════════
@@ -138,7 +137,7 @@
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Inter', system-ui, sans-serif;
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
       line-height: 1.5;
       overscroll-behavior: none;
       transition: background 0.28s, color 0.28s;
@@ -272,7 +271,7 @@
       padding: 9px 20px; border-radius: 50px;
       font-size: 12.5px; font-weight: 600; border: none; cursor: pointer;
       transition: all 0.18s; position: relative; z-index: 1;
-      font-family: 'Inter', sans-serif;
+      font-family: 'Plus Jakarta Sans', sans-serif;
     }
     .uz-btn:active { transform: scale(0.95); }
     .uz-btn-blue  { background: var(--accent);   color: #fff; box-shadow: 0 4px 14px var(--accent-gl); }
@@ -354,7 +353,7 @@
       font-size: 11.5px; font-weight: 600;
       background: var(--surface2); color: var(--text2);
       border: 1px solid var(--border); cursor: pointer;
-      transition: all 0.16s; font-family: 'Inter', sans-serif;
+      transition: all 0.16s; font-family: 'Plus Jakarta Sans', sans-serif;
     }
     .chip:active { transform: scale(0.92); }
     .chip.on { background: color-mix(in srgb, var(--accent) 18%, var(--surface2)); color: var(--accent-lt); border-color: color-mix(in srgb,var(--accent) 55%,transparent); }
@@ -434,7 +433,7 @@
       flex: 1; padding: 13px 10px; border: none; border-radius: 13px;
       font-size: 13px; font-weight: 600; cursor: pointer;
       display: flex; align-items: center; justify-content: center; gap: 7px;
-      transition: all 0.18s; font-family: 'Inter', sans-serif;
+      transition: all 0.18s; font-family: 'Plus Jakarta Sans', sans-serif;
     }
     .ab-btn:active { transform: scale(0.96); }
     .ab-primary { background: var(--accent);  color: #fff; box-shadow: 0 5px 18px var(--accent-gl); }
@@ -474,7 +473,19 @@
     .ic-body { flex: 1; }
     .ic-body strong { display: block; font-size: 12.5px; font-weight: 600; }
     .ic-body span   { font-size: 11px; color: var(--text2); }
-    .ic-btn { padding: 7px 15px; background: var(--accent); color: #fff; border: none; border-radius: 50px; font-size: 11.5px; font-weight: 700; cursor: pointer; flex-shrink: 0; font-family: 'Inter', sans-serif; }
+    .ic-btn { padding: 7px 15px; background: var(--accent); color: #fff; border: none; border-radius: 50px; font-size: 11.5px; font-weight: 700; cursor: pointer; flex-shrink: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 600, 'GRAD' 0, 'opsz' 24;
+      font-size: 1.05em;
+      vertical-align: middle;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      font-feature-settings: 'liga' 1;
+    }
+    .icon-inline { margin-right: 8px; vertical-align: middle; }
 
     /* ═══════════════════════════
        AD SECTION
@@ -512,7 +523,7 @@
       </div>
       <div class="hdr-actions">
         <div class="icon-btn" id="themeBtn" title="Toggle theme">
-          <i id="themeIco" class="fas fa-sun"></i>
+          <i id="themeIco" class="material-symbols-outlined">light_mode</i>
         </div>
       </div>
     </div>
@@ -521,7 +532,7 @@
   <!-- INSTALL BANNER -->
   <div id="installContainer">
     <div class="install-card">
-      <i class="fas fa-mobile-alt"></i>
+      <i class="material-symbols-outlined">smartphone</i>
       <div class="ic-body"><strong>Install App</strong><span>Use offline as a native app</span></div>
       <button class="ic-btn" onclick="installApp()">Install</button>
     </div>
@@ -559,7 +570,7 @@
 
       <div class="features-grid">
         <div class="feature-card">
-          <div class="feature-icon"><i class="fas fa-expand-arrows-alt"></i></div>
+          <div class="feature-icon"><i class="material-symbols-outlined">open_in_full</i></div>
           <h3>Smart Image Resizer</h3>
           <p>Resize images while maintaining aspect ratio and quality. Perfect for web optimization, social media posts, and print preparation. Supports rotation, quality control, and smooth scaling algorithms.</p>
           <div class="feature-benefits">
@@ -570,7 +581,7 @@
         </div>
 
         <div class="feature-card">
-          <div class="feature-icon"><i class="fas fa-file-export"></i></div>
+          <div class="feature-icon"><i class="material-symbols-outlined">file_upload</i></div>
           <h3>JPG to PNG Converter</h3>
           <p>Convert lossy JPG files to lossless PNG format. Ideal for graphics, logos, and images requiring transparency. Maintains quality while adding alpha channel support.</p>
           <div class="feature-benefits">
@@ -581,7 +592,7 @@
         </div>
 
         <div class="feature-card">
-          <div class="feature-icon"><i class="fas fa-file-import"></i></div>
+          <div class="feature-icon"><i class="material-symbols-outlined">file_download</i></div>
           <h3>PNG to JPG Converter</h3>
           <p>Compress PNG files to smaller JPG format for web use. Perfect for photos and images where file size matters more than perfect quality. Customizable compression levels.</p>
           <div class="feature-benefits">
@@ -626,19 +637,19 @@
       <h2 class="section-title">Image Processing Best Practices</h2>
       <div class="guide-grid">
         <div class="guide-card">
-          <h4><i class="fas fa-compress"></i> File Size Optimization</h4>
+          <h4><i class="material-symbols-outlined">compress</i> File Size Optimization</h4>
           <p>For web images, aim for file sizes under 100KB for fast loading. Use JPG for photos (80-90% quality) and PNG for graphics with transparency.</p>
         </div>
         <div class="guide-card">
-          <h4><i class="fas fa-ruler-combined"></i> Dimension Guidelines</h4>
+          <h4><i class="material-symbols-outlined">straighten</i> Dimension Guidelines</h4>
           <p>Web images: 1920px max width. Social media: Facebook (1200x630), Instagram (1080x1080), Twitter (1200x675). Print: 300 DPI minimum.</p>
         </div>
         <div class="guide-card">
-          <h4><i class="fas fa-palette"></i> Color Profiles</h4>
+          <h4><i class="material-symbols-outlined">palette</i> Color Profiles</h4>
           <p>Use sRGB color space for web images. Convert CMYK images to RGB before web use. Maintain color accuracy for branding materials.</p>
         </div>
         <div class="guide-card">
-          <h4><i class="fas fa-file-image"></i> Format Selection</h4>
+          <h4><i class="material-symbols-outlined">image</i> Format Selection</h4>
           <p>JPG for photographs, PNG for graphics/transparency, WebP for modern browsers (smaller files), GIF for animations or simple graphics.</p>
         </div>
       </div>
@@ -687,10 +698,10 @@
       <div class="page-sub">Scale, rotate &amp; adjust quality</div>
 
       <div class="upload-zone" id="resizerDrop">
-        <div class="uz-icon" style="color:var(--accent-lt)"><i class="fas fa-image"></i></div>
+        <div class="uz-icon" style="color:var(--accent-lt)"><i class="material-symbols-outlined">image</i></div>
         <div class="uz-title">Drop an image here</div>
         <div class="uz-sub">Drag &amp; drop or tap Browse<br>JPG · PNG · WEBP · GIF</div>
-        <button class="uz-btn uz-btn-blue" id="resizerBrowse"><i class="fas fa-folder-open"></i> Browse Files</button>
+        <button class="uz-btn uz-btn-blue" id="resizerBrowse"><i class="material-symbols-outlined">folder_open</i> Browse Files</button>
         <input type="file" id="resizerFile" accept="image/*" class="file-input">
       </div>
 
@@ -701,14 +712,14 @@
             <div class="preview-card">
               <div class="preview-imgbox"><img id="resizerImg" src="" alt="Preview"></div>
               <div class="preview-bar">
-                <div class="pchip"><i class="fas fa-ruler-combined"></i><span id="rszOrigDim">—</span></div>
-                <div class="pchip"><i class="fas fa-weight-hanging"></i><span id="rszOrigSize">—</span></div>
+                <div class="pchip"><i class="material-symbols-outlined">straighten</i><span id="rszOrigDim">—</span></div>
+                <div class="pchip"><i class="material-symbols-outlined">scale</i><span id="rszOrigSize">—</span></div>
               </div>
               <div class="loading-ov" id="rszLoad"><div class="spin"></div><div class="spin-lbl">Processing…</div></div>
             </div>
 
             <div class="ctrl-card">
-              <div class="ctrl-head"><div class="ctrl-ico"><i class="fas fa-sliders-h"></i></div><div class="ctrl-title">Quality &amp; Info</div></div>
+              <div class="ctrl-head"><div class="ctrl-ico"><i class="material-symbols-outlined">tune</i></div><div class="ctrl-title">Quality &amp; Info</div></div>
               <div class="sl-row">
                 <span class="sl-lbl">Quality</span>
                 <div class="sl-wrap"><input type="range" min="10" max="100" value="90" id="qualSlider"></div>
@@ -728,7 +739,7 @@
           <!-- Right col: controls -->
           <div>
             <div class="ctrl-card">
-              <div class="ctrl-head"><div class="ctrl-ico"><i class="fas fa-compress-arrows-alt"></i></div><div class="ctrl-title">Scale</div></div>
+              <div class="ctrl-head"><div class="ctrl-ico"><i class="material-symbols-outlined">straighten</i></div><div class="ctrl-title">Scale</div></div>
               <div class="sl-row">
                 <span class="sl-lbl">Scale</span>
                 <div class="sl-wrap"><input type="range" min="10" max="200" value="100" id="scaleSlider"></div>
@@ -754,7 +765,7 @@
             </div>
 
             <div class="ctrl-card">
-              <div class="ctrl-head"><div class="ctrl-ico"><i class="fas fa-rotate-right"></i></div><div class="ctrl-title">Rotation</div></div>
+              <div class="ctrl-head"><div class="ctrl-ico"><i class="material-symbols-outlined">rotate_right</i></div><div class="ctrl-title">Rotation</div></div>
               <div class="sl-row">
                 <span class="sl-lbl">Angle</span>
                 <div class="sl-wrap"><input type="range" min="-180" max="180" value="0" id="rotSlider"></div>
@@ -780,10 +791,10 @@
       <div class="page-sub">Convert JPEG to lossless PNG</div>
 
       <div class="upload-zone" id="j2pDrop">
-        <div class="uz-icon" style="color:var(--amber)"><i class="fas fa-file-image"></i></div>
+        <div class="uz-icon" style="color:var(--amber)"><i class="material-symbols-outlined">image</i></div>
         <div class="uz-title">Upload a JPG File</div>
         <div class="uz-sub">Converts to lossless PNG<br>with full transparency support</div>
-        <button class="uz-btn uz-btn-amber" id="j2pBrowse"><i class="fas fa-folder-open"></i> Browse JPG</button>
+        <button class="uz-btn uz-btn-amber" id="j2pBrowse"><i class="material-symbols-outlined">folder_open</i> Browse JPG</button>
         <input type="file" id="j2pFile" accept="image/jpeg" class="file-input">
       </div>
 
@@ -792,13 +803,13 @@
           <div class="preview-card">
             <div class="preview-imgbox"><img id="j2pImg" src="" alt="Preview"></div>
             <div class="preview-bar">
-              <div class="pchip"><i class="fas fa-ruler-combined"></i><span id="j2pDim">—</span></div>
-              <div class="pchip"><i class="fas fa-weight-hanging"></i><span id="j2pSize">—</span></div>
+              <div class="pchip"><i class="material-symbols-outlined">straighten</i><span id="j2pDim">—</span></div>
+              <div class="pchip"><i class="material-symbols-outlined">scale</i><span id="j2pSize">—</span></div>
             </div>
             <div class="loading-ov" id="j2pLoad"><div class="spin"></div><div class="spin-lbl">Converting…</div></div>
           </div>
           <div class="ctrl-card">
-            <div class="conv-badge badge-blue"><i class="fas fa-check-circle"></i> Ready to convert</div>
+            <div class="conv-badge badge-blue"><i class="material-symbols-outlined">check_circle</i> Ready to convert</div>
             <div class="info-grid">
               <div class="info-tile"><div class="info-lbl">Input</div><div class="info-val" style="color:var(--amber)">JPG</div></div>
               <div class="info-tile"><div class="info-lbl">Output</div><div class="info-val" style="color:var(--accent-lt)">PNG</div></div>
@@ -815,10 +826,10 @@
       <div class="page-sub">Compress PNG to smaller JPG</div>
 
       <div class="upload-zone" id="p2jDrop">
-        <div class="uz-icon" style="color:var(--emerald)"><i class="fas fa-file-image"></i></div>
+        <div class="uz-icon" style="color:var(--emerald)"><i class="material-symbols-outlined">image</i></div>
         <div class="uz-title">Upload a PNG File</div>
         <div class="uz-sub">Converts to compressed JPG<br>Transparent areas will fill white</div>
-        <button class="uz-btn uz-btn-green" id="p2jBrowse"><i class="fas fa-folder-open"></i> Browse PNG</button>
+        <button class="uz-btn uz-btn-green" id="p2jBrowse"><i class="material-symbols-outlined">folder_open</i> Browse PNG</button>
         <input type="file" id="p2jFile" accept="image/png" class="file-input">
       </div>
 
@@ -827,13 +838,13 @@
           <div class="preview-card">
             <div class="preview-imgbox"><img id="p2jImg" src="" alt="Preview"></div>
             <div class="preview-bar">
-              <div class="pchip"><i class="fas fa-ruler-combined"></i><span id="p2jDim">—</span></div>
-              <div class="pchip"><i class="fas fa-weight-hanging"></i><span id="p2jSize">—</span></div>
+              <div class="pchip"><i class="material-symbols-outlined">straighten</i><span id="p2jDim">—</span></div>
+              <div class="pchip"><i class="material-symbols-outlined">scale</i><span id="p2jSize">—</span></div>
             </div>
             <div class="loading-ov" id="p2jLoad"><div class="spin"></div><div class="spin-lbl">Converting…</div></div>
           </div>
           <div class="ctrl-card">
-            <div class="conv-badge badge-green"><i class="fas fa-check-circle"></i> Ready to convert</div>
+            <div class="conv-badge badge-green"><i class="material-symbols-outlined">check_circle</i> Ready to convert</div>
             <div class="info-grid">
               <div class="info-tile"><div class="info-lbl">Input</div><div class="info-val" style="color:var(--emerald)">PNG</div></div>
               <div class="info-tile"><div class="info-lbl">Output</div><div class="info-val">JPG</div></div>
@@ -850,17 +861,17 @@
   <nav class="bottom-nav">
     <div class="nav-item active" data-tab="resizer">
       <div class="nav-pip"></div>
-      <i class="fas fa-expand-arrows-alt"></i>
+      <i class="material-symbols-outlined">open_in_full</i>
       <span>Resizer</span>
     </div>
     <div class="nav-item" data-tab="jpg2png">
       <div class="nav-pip"></div>
-      <i class="fas fa-file-export"></i>
+      <i class="material-symbols-outlined">publish</i>
       <span>JPG→PNG</span>
     </div>
     <div class="nav-item" data-tab="png2jpg">
       <div class="nav-pip"></div>
-      <i class="fas fa-file-import"></i>
+      <i class="material-symbols-outlined">file_download</i>
       <span>PNG→JPG</span>
     </div>
   </nav>
@@ -868,28 +879,28 @@
   <!-- ACTION SHELVES -->
   <div class="action-shelf" id="shelfResizer">
     <div class="ab-row">
-      <button class="ab-btn ab-primary" id="rszDownload"><i class="fas fa-download"></i> Download</button>
-      <button class="ab-btn ab-ghost"  id="rszReset"><i class="fas fa-undo"></i></button>
-      <button class="ab-btn ab-danger" id="rszClear"><i class="fas fa-trash"></i></button>
+      <button class="ab-btn ab-primary" id="rszDownload"><i class="material-symbols-outlined">download</i> Download</button>
+      <button class="ab-btn ab-ghost"  id="rszReset"><i class="material-symbols-outlined">undo</i></button>
+      <button class="ab-btn ab-danger" id="rszClear"><i class="material-symbols-outlined">delete</i></button>
     </div>
   </div>
 
   <div class="action-shelf" id="shelfJ2p">
     <div class="ab-row">
-      <button class="ab-btn ab-amber"  id="j2pDownload"><i class="fas fa-download"></i> Download PNG</button>
-      <button class="ab-btn ab-danger" id="j2pClear"><i class="fas fa-trash"></i></button>
+      <button class="ab-btn ab-amber"  id="j2pDownload"><i class="material-symbols-outlined">download</i> Download PNG</button>
+      <button class="ab-btn ab-danger" id="j2pClear"><i class="material-symbols-outlined">delete</i></button>
     </div>
   </div>
 
   <div class="action-shelf" id="shelfP2j">
     <div class="ab-row">
-      <button class="ab-btn ab-emerald" id="p2jDownload"><i class="fas fa-download"></i> Download JPG</button>
-      <button class="ab-btn ab-danger"  id="p2jClear"><i class="fas fa-trash"></i></button>
+      <button class="ab-btn ab-emerald" id="p2jDownload"><i class="material-symbols-outlined">download</i> Download JPG</button>
+      <button class="ab-btn ab-danger"  id="p2jClear"><i class="material-symbols-outlined">delete</i></button>
     </div>
   </div>
 
   <!-- TOAST -->
-  <div class="toast" id="toast"><i class="fas fa-check-circle"></i><span id="toastTxt">Done!</span></div>
+  <div class="toast" id="toast"><i class="material-symbols-outlined">check_circle</i><span id="toastTxt">Done!</span></div>
 
   <!-- CANVASES -->
   <canvas id="rszCanvas" style="display:none"></canvas>
@@ -934,7 +945,7 @@ const html = document.documentElement;
 function applyTheme(t){
   html.setAttribute('data-theme',t);
   localStorage.setItem('gunopix-theme',t);
-  document.getElementById('themeIco').className = t==='dark' ? 'fas fa-sun' : 'fas fa-moon';
+  document.getElementById('themeIco').className = 'material-symbols-outlined'; document.getElementById('themeIco').textContent = t==='dark' ? 'light_mode' : 'dark_mode';
 }
 applyTheme(localStorage.getItem('gunopix-theme')||'dark');
 document.getElementById('themeBtn').addEventListener('click', ()=>
