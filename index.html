@@ -1047,6 +1047,9 @@
                 <div class="info-tile"><div class="info-lbl">Output Size</div><div class="info-val" id="newDimTile">—</div></div>
                 <div class="info-tile"><div class="info-lbl">Actual File</div><div class="info-val" id="estSizeTile">—</div></div>
               </div>
+              <div style="font-size:10px;color:var(--text3);margin-top:10px;line-height:1.6;">
+                ✨ <strong>Smart Optimization:</strong> When downsizing images by 50%+, quality is automatically reduced (8-15%) for maximum file compression while keeping visual quality excellent.
+              </div>
             </div>
           </div>
 
@@ -1376,7 +1379,7 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
     };
   }
 
-  // ✅ KEY FIX: Actually compress to get REAL file size
+  // ✅ FIXED: Proper downsampling with file size reduction
   async function generateAndCacheBlob() {
     if (!img) return;
     
@@ -1389,39 +1392,90 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
     const outW = Math.max(1, Math.ceil(nw * c + nh * s));
     const outH = Math.max(1, Math.ceil(nw * s + nh * c));
     
-    canvas.width = outW;
-    canvas.height = outH;
+    // Calculate scale ratio for quality optimization
+    const scaleRatio = (nw * nh) / (ow * oh);
     
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.imageSmoothingEnabled = smCb.checked;
-    ctx.imageSmoothingQuality = 'high';
+    // Adaptive quality: reduce quality when downsampling significantly
+    let adaptiveQual = qual;
+    if (scaleRatio < 0.5) {
+      // Downsampling by 50% or more - can reduce quality more aggressively
+      adaptiveQual = Math.max(60, qual - 15);
+    } else if (scaleRatio < 0.75) {
+      // Moderate downsampling - reduce quality slightly
+      adaptiveQual = Math.max(70, qual - 8);
+    }
+    // For upsampling or minimal change, keep original quality
     
-    // Draw rotated image
-    ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.rotate(rad);
-    ctx.drawImage(img, -nw / 2, -nh / 2, nw, nh);
+    // Multi-pass downsampling for better quality
+    let srcCanvas = canvas;
+    let srcCtx = ctx;
     
-    // Generate actual blob with current quality
+    if (scaleRatio < 0.5 && smCb.checked) {
+      // Use two-pass downsampling for significant reductions
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d');
+      
+      // First pass: scale to intermediate size
+      const intermediateScale = Math.sqrt(scaleRatio);
+      const intermediateW = Math.max(1, Math.ceil(nw * intermediateScale));
+      const intermediateH = Math.max(1, Math.ceil(nh * intermediateScale));
+      
+      tempCanvas.width = intermediateW;
+      tempCanvas.height = intermediateH;
+      tempCtx.imageSmoothingEnabled = true;
+      tempCtx.imageSmoothingQuality = 'high';
+      tempCtx.drawImage(img, 0, 0, intermediateW, intermediateH);
+      
+      // Second pass: scale to final size
+      canvas.width = outW;
+      canvas.height = outH;
+      srcCtx.clearRect(0, 0, outW, outH);
+      srcCtx.imageSmoothingEnabled = true;
+      srcCtx.imageSmoothingQuality = 'high';
+      
+      srcCtx.translate(canvas.width / 2, canvas.height / 2);
+      srcCtx.rotate(rad);
+      srcCtx.drawImage(tempCanvas, -nw / 2, -nh / 2, nw, nh);
+    } else {
+      // Single pass for other cases
+      canvas.width = outW;
+      canvas.height = outH;
+      srcCtx.clearRect(0, 0, canvas.width, canvas.height);
+      srcCtx.imageSmoothingEnabled = smCb.checked;
+      srcCtx.imageSmoothingQuality = 'high';
+      
+      // Draw rotated image
+      srcCtx.translate(canvas.width / 2, canvas.height / 2);
+      srcCtx.rotate(rad);
+      srcCtx.drawImage(img, -nw / 2, -nh / 2, nw, nh);
+    }
+    
+    // Generate actual blob with adaptive quality
     return new Promise((resolve) => {
-      canvas.toBlob((blob) => {
+      srcCanvas.toBlob((blob) => {
         if (blob) {
           cachedBlob = blob;
-          // Update UI with ACTUAL size
-          newDimTile.textContent = outW + '×' + outH;
-          estSizeTile.textContent = fmt(blob.size);
           
-          // Update preview with compressed version (scaled for performance)
+          // Comparison: show original vs output size
+          const sizeSavings = ((1 - blob.size / oSz) * 100).toFixed(0);
+          const sizeIndicator = blob.size < oSz ? `↓ ${sizeSavings}%` : `↑ ${(-(100 - (blob.size / oSz * 100))).toFixed(0)}%`;
+          
+          newDimTile.textContent = outW + '×' + outH;
+          estSizeTile.innerHTML = `<span>${fmt(blob.size)}</span> <span style="color:var(--text3);font-size:10px;">${sizeIndicator}</span>`;
+          
+          // Update preview with output quality version
           const previewScale = Math.min(1, 400 / Math.max(outW, outH));
           const previewCanvas = document.createElement('canvas');
           previewCanvas.width = Math.max(1, Math.floor(outW * previewScale));
           previewCanvas.height = Math.max(1, Math.floor(outH * previewScale));
           const pCtx = previewCanvas.getContext('2d');
           pCtx.imageSmoothingEnabled = smCb.checked;
-          pCtx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height);
-          pi.src = previewCanvas.toDataURL('image/jpeg', qual / 100);
+          pCtx.imageSmoothingQuality = 'high';
+          pCtx.drawImage(srcCanvas, 0, 0, previewCanvas.width, previewCanvas.height);
+          pi.src = previewCanvas.toDataURL('image/jpeg', adaptiveQual / 100);
         }
         resolve(blob);
-      }, 'image/jpeg', qual / 100);
+      }, 'image/jpeg', adaptiveQual / 100);
     });
   }
 
