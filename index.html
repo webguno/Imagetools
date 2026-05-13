@@ -1295,6 +1295,8 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
   let img=null,ow=0,oh=0,oSz=0,sc=100,rot=0,qual=90;
   let cachedBlob = null; // Cache the actual compressed blob
   let previewUpdateTimer = null;
+  let inputType = 'image/jpeg';
+  let inputName = 'image';
   
   const drop=document.getElementById('resizerDrop');
   const fi=document.getElementById('resizerFile');
@@ -1319,6 +1321,8 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
     lo.classList.add('show');
     const r=new FileReader(); r.onload=ev=>{
       img=new Image(); img.onload=function(){
+        inputType = file.type || 'image/jpeg';
+        inputName = file.name ? file.name.replace(/\.[^/.]+$/, '') : 'image';
         ow=this.width; oh=this.height; oSz=file.size;
         pi.src=ev.target.result;
         document.getElementById('rszOrigDim').textContent=ow+'×'+oh;
@@ -1336,6 +1340,18 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
   function syncSC(v){ document.querySelectorAll('#scaleChips .chip').forEach(c=>c.classList.toggle('on',+c.dataset.s===v)); }
   function syncRT(v){ document.querySelectorAll('#rotChips .chip').forEach(c=>c.classList.toggle('on',+c.dataset.r===v)); }
 
+  function getOutputMimeType(){
+    if(inputType==='image/png' || inputType==='image/gif') return 'image/png';
+    if(inputType==='image/webp') return 'image/webp';
+    if(inputType==='image/jpeg' || inputType==='image/jpg') return 'image/jpeg';
+    return 'image/jpeg';
+  }
+  function getOutputExtension(){
+    if(inputType==='image/png' || inputType==='image/gif') return 'png';
+    if(inputType==='image/webp') return 'webp';
+    return 'jpg';
+  }
+
   // Calculate actual output dimensions after rotation
   function getOutputDimensions(w, h, rotationDeg) {
     const rad = rotationDeg * Math.PI / 180;
@@ -1350,6 +1366,10 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
   async function generateAndCacheBlob() {
     if (!img) return;
 
+    const outputType = getOutputMimeType();
+    const useQuality = outputType !== 'image/png';
+    const quality = useQuality ? Math.min(1, Math.max(0.1, qual / 100)) : undefined;
+
     const targetW = Math.max(1, parseInt(wI.value) || ow);
     const targetH = Math.max(1, parseInt(hI.value) || oh);
     const rad = rot * Math.PI / 180;
@@ -1359,7 +1379,6 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
     const outW = Math.max(1, Math.ceil(targetW * c + targetH * s));
     const outH = Math.max(1, Math.ceil(targetW * s + targetH * c));
     const scaleRatio = (targetW * targetH) / (ow * oh);
-    const quality = Math.min(1, Math.max(0.1, qual / 100));
 
     const resizedCanvas = document.createElement('canvas');
     resizedCanvas.width = targetW;
@@ -1400,30 +1419,41 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
       ctx.drawImage(resizedCanvas, 0, 0, targetW, targetH);
     }
 
-    return new Promise((resolve) => {
-      canvas.toBlob((blob) => {
-        if (blob) {
-          cachedBlob = blob;
-          const sizeDiff = oSz ? Math.round((blob.size / oSz - 1) * 100) : 0;
-          const sizeIndicator = oSz ? (sizeDiff < 0 ? `↓ ${Math.abs(sizeDiff)}%` : `↑ ${sizeDiff}%`) : '';
+    const buildBlob = (q) => new Promise(resolve => canvas.toBlob(resolve, outputType, q));
+    let finalQuality = quality;
+    let blob = await buildBlob(finalQuality);
 
-          newDimTile.textContent = targetW + '×' + targetH;
-          estSizeTile.innerHTML = `<span>${fmt(blob.size)}</span> <span style="color:var(--text3);font-size:10px;">${sizeIndicator}</span>`;
-
-          const previewScale = Math.min(1, 400 / Math.max(outW, outH));
-          const previewCanvas = document.createElement('canvas');
-          previewCanvas.width = Math.max(1, Math.floor(outW * previewScale));
-          previewCanvas.height = Math.max(1, Math.floor(outH * previewScale));
-          const pCtx = previewCanvas.getContext('2d');
-          pCtx.imageSmoothingEnabled = true;
-          pCtx.imageSmoothingQuality = 'high';
-          pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-          pCtx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height);
-          pi.src = previewCanvas.toDataURL('image/jpeg', quality);
+    if (useQuality && oSz && blob && blob.size > oSz) {
+      for (let q = finalQuality - 0.1; q >= 0.35 && blob && blob.size > oSz; q = Math.round((q - 0.1) * 100) / 100) {
+        const nextBlob = await buildBlob(q);
+        if (nextBlob && nextBlob.size < blob.size) {
+          blob = nextBlob;
+          finalQuality = q;
         }
-        resolve(blob);
-      }, 'image/jpeg', quality);
-    });
+      }
+    }
+
+    if (blob) {
+      cachedBlob = blob;
+      const sizeDiff = oSz ? Math.round((blob.size / oSz - 1) * 100) : 0;
+      const sizeIndicator = oSz ? (sizeDiff < 0 ? `↓ ${Math.abs(sizeDiff)}%` : `↑ ${sizeDiff}%`) : '';
+
+      newDimTile.textContent = targetW + '×' + targetH;
+      estSizeTile.innerHTML = `<span>${fmt(blob.size)}</span> <span style="color:var(--text3);font-size:10px;">${sizeIndicator}</span>`;
+
+      const previewScale = Math.min(1, 400 / Math.max(outW, outH));
+      const previewCanvas = document.createElement('canvas');
+      previewCanvas.width = Math.max(1, Math.floor(outW * previewScale));
+      previewCanvas.height = Math.max(1, Math.floor(outH * previewScale));
+      const pCtx = previewCanvas.getContext('2d');
+      pCtx.imageSmoothingEnabled = true;
+      pCtx.imageSmoothingQuality = 'high';
+      pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+      pCtx.drawImage(canvas, 0, 0, previewCanvas.width, previewCanvas.height);
+      pi.src = useQuality ? previewCanvas.toDataURL(outputType, finalQuality) : previewCanvas.toDataURL(outputType);
+    }
+
+    return blob;
   }
 
   function reset(){
@@ -1501,13 +1531,14 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
 
   document.getElementById('rszDownload').addEventListener('click',()=>{
     if(!img) return;
+    const outputExt = getOutputExtension();
+    const nw=parseInt(wI.value)||ow, nh=parseInt(hI.value)||oh;
     
     // If we have a cached blob, use it instantly
     if (cachedBlob) {
       const a=document.createElement('a'); 
       a.href=URL.createObjectURL(cachedBlob);
-      const nw=parseInt(wI.value)||ow,nh=parseInt(hI.value)||oh;
-      a.download='resized-'+nw+'x'+nh+'.jpg'; 
+      a.download=`${inputName || 'resized'}-${nw}x${nh}.${outputExt}`;
       a.click(); 
       URL.revokeObjectURL(a.href);
       toast('Image downloaded!');
@@ -1521,12 +1552,8 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
         const a=document.createElement('a'); 
         a.href=URL.createObjectURL(blob);
         const nw=parseInt(wI.value)||ow,nh=parseInt(hI.value)||oh;
-        a.download='resized-'+nw+'x'+nh+'.jpg'; 
-        a.click(); 
-        URL.revokeObjectURL(a.href);
-        lo.classList.remove('show'); 
-        toast('Image downloaded!');
-      }
+        const outputExt = getOutputExtension();
+        a.download=`${inputName || 'resized'}-${nw}x${nh}.${outputExt}`;
     });
   });
   
