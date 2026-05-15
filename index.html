@@ -658,7 +658,6 @@
       border: 1px solid var(--accent-gl);
       text-align: center;
     }
-    .hero-content { }
     .hero-title {
       font-size: 28px; font-weight: 800; letter-spacing: -1px;
       background: linear-gradient(135deg, var(--text) 0%, var(--accent-lt) 100%);
@@ -1552,10 +1551,13 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
         const a=document.createElement('a'); 
         a.href=URL.createObjectURL(blob);
         const nw=parseInt(wI.value)||ow,nh=parseInt(hI.value)||oh;
-        const outputExt = getOutputExtension();
-        a.download=`${inputName || 'resized'}-${nw}x${nh}.${outputExt}`;
+        a.download='resized-'+nw+'x'+nh+'.jpg'; 
+        a.click(); 
+        URL.revokeObjectURL(a.href);
+        lo.classList.remove('show'); 
+        toast('Image downloaded!');
+      }
     });
-  });
   
   document.getElementById('rszReset').addEventListener('click',()=>{ 
     if(img) {
