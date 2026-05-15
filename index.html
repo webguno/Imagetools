@@ -1558,6 +1558,7 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
         toast('Image downloaded!');
       }
     });
+  });
   
   document.getElementById('rszReset').addEventListener('click',()=>{ 
     if(img) {
@@ -1565,20 +1566,10 @@ navItems.forEach(n=>n.addEventListener('click',()=>{
       generateAndCacheBlob();
     } 
   });
-  
-  document.getElementById('rszClear').addEventListener('click',()=>{
-    img=null;pi.src='';pw.style.display='none';fi.value='';
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    cachedBlob = null;
-    newDimTile.textContent = '—';
-    estSizeTile.textContent = '—';
-    setPrev('resizer',false);
-  });
 })();
-
-// ══════════════════════════════════════
-//  JPG → PNG - FIXED: ACTUAL BLOB SIZE
-// ══════════════════════════════════════
+// ── PWA ──────────────────────────────
+if('serviceWorker' in navigator)
+  window.addEventListener('load',()=>navigator.serviceWorker.register('/service-worker.js').catch(()=>{}));
 (function(){
   let img=null, cachedBlob=null;
   const drop=document.getElementById('j2pDrop'),fi=document.getElementById('j2pFile');
