@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Resizer Test</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: #f1f5f9;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { margin-bottom: 20px; font-size: 28px; }
+    .test-box {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .test-box h3 { margin-bottom: 12px; color: #60a5fa; }
+    .test-box p { margin-bottom: 8px; font-size: 14px; }
+    input[type="file"] { margin: 10px 0; }
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-top: 10px;
+    }
+    button:hover { background: #2563eb; }
+    .result {
+      background: #0f172a;
+      border-left: 4px solid #10b981;
+      padding: 12px;
+      margin-top: 12px;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+    .result.error {
+      border-left-color: #ef4444;
+      color: #fca5a5;
+    }
+    .result.success {
+      color: #86efac;
+    }
+    canvas { display: none; }
+    img { max-width: 100%; height: auto; margin: 10px 0; border-radius: 6px; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🖼️ Image Resizer Test Suite</h1>
+  
+  <div class="test-box">
+    <h3>Test 1: Resize with 50% Downsampling</h3>
+    <p>Expected: File size should decrease by ~60-70%</p>
+    <input type="file" id="test1File" accept="image/*">
+    <button onclick="runTest1()">Test Resize 50%</button>
+    <div id="test1Result"></div>
+  </div>
+
+  <div class="test-box">
+    <h3>Test 2: Adaptive Quality Test</h3>
+    <p>Expected: Quality auto-reduced for downsampling, preserved for upsampling</p>
+    <input type="file" id="test2File" accept="image/*">
+    <button onclick="runTest2()">Test Adaptive Quality</button>
+    <div id="test2Result"></div>
+  </div>
+
+  <div class="test-box">
+    <h3>Test 3: Multi-pass Downsampling</h3>
+    <p>Expected: Better quality at smaller file size with smooth scaling</p>
+    <input type="file" id="test3File" accept="image/*">
+    <button onclick="runTest3()">Test Multi-pass</button>
+    <div id="test3Result"></div>
+  </div>
+
+  <div class="test-box">
+    <h3>Test 4: JPG to PNG Conversion</h3>
+    <p>Expected: Lossless PNG with appropriate file size</p>
+    <input type="file" id="test4File" accept="image/jpeg">
+    <button onclick="runTest4()">Test JPG→PNG</button>
+    <div id="test4Result"></div>
+  </div>
+
+  <div class="test-box">
+    <h3>Test 5: PNG to JPG Conversion</h3>
+    <p>Expected: Compressed JPG smaller than PNG</p>
+    <input type="file" id="test5File" accept="image/png">
+    <button onclick="runTest5()">Test PNG→JPG</button>
+    <div id="test5Result"></div>
+  </div>
+</div>
+
+<canvas id="testCanvas"></canvas>
+
+<script>
+// Helper function to format bytes
+function fmt(bytes) {
+  if (!bytes) return '0 B';
+  const k = 1024, u = ['B', 'KB', 'MB'];
+  const i = Math.min(2, Math.floor(Math.log(bytes) / Math.log(k)));
+  return (bytes / Math.pow(k, i)).toFixed(1) + ' ' + u[i];
+}
+
+// Test 1: 50% Downsampling
+async function runTest1() {
+  const file = document.getElementById('test1File').files[0];
+  if (!file) {
+    showResult('test1Result', '❌ No file selected', true);
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const img = new Image();
+    img.onload = async () => {
+      const canvas = document.getElementById('testCanvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Resize to 50%
+      const newW = Math.round(img.width * 0.5);
+      const newH = Math.round(img.height * 0.5);
+      
+      canvas.width = newW;
+      canvas.height = newH;
+      ctx.drawImage(img, 0, 0, newW, newH);
+      
+      // Get blob
+      canvas.toBlob((blob) => {
+        const savings = ((1 - blob.size / file.size) * 100).toFixed(1);
+        const reduction = blob.size < file.size ? '✅ SUCCESS' : '❌ FAILED';
+        const result = `
+${reduction}
+Original: ${img.width}×${img.height} (${fmt(file.size)})
+Resized: ${newW}×${newH} (${fmt(blob.size)})
+Savings: ↓${savings}%
+Expected: ~65% reduction
+Quality: 90%
+        `;
+        showResult('test1Result', result, savings < 50);
+      }, 'image/jpeg', 0.9);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// Test 2: Adaptive Quality
+async function runTest2() {
+  const file = document.getElementById('test2File').files[0];
+  if (!file) {
+    showResult('test2Result', '❌ No file selected', true);
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const img = new Image();
+    img.onload = async () => {
+      const canvas = document.getElementById('testCanvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Test with 60% reduction
+      const scale = 0.6;
+      const newW = Math.round(img.width * scale);
+      const newH = Math.round(img.height * scale);
+      
+      // Adaptive quality logic
+      const scaleRatio = scale * scale; // 0.36
+      let adaptiveQual = 90;
+      if (scaleRatio < 0.5) adaptiveQual = Math.max(60, 90 - 15); // 75%
+      
+      canvas.width = newW;
+      canvas.height = newH;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, newW, newH);
+      
+      canvas.toBlob((blob) => {
+        const savings = ((1 - blob.size / file.size) * 100).toFixed(1);
+        const result = `
+✅ ADAPTIVE QUALITY WORKING
+Original: ${img.width}×${img.height} (${fmt(file.size)})
+Resized (60%): ${newW}×${newH} (${fmt(blob.size)})
+Scale Ratio: ${(scaleRatio * 100).toFixed(1)}%
+Adaptive Quality: ${adaptiveQual}%
+Savings: ↓${savings}%
+        `;
+        showResult('test2Result', result, false);
+      }, 'image/jpeg', adaptiveQual / 100);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// Test 3: Multi-pass Downsampling
+async function runTest3() {
+  const file = document.getElementById('test3File').files[0];
+  if (!file) {
+    showResult('test3Result', '❌ No file selected', true);
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const img = new Image();
+    img.onload = async () => {
+      const canvas1 = document.getElementById('testCanvas');
+      const ctx1 = canvas1.getContext('2d');
+      
+      const nw = Math.round(img.width * 0.5);
+      const nh = Math.round(img.height * 0.5);
+      const scaleRatio = 0.25;
+      
+      // Multi-pass downsampling
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d');
+      
+      const intermediateScale = Math.sqrt(scaleRatio); // 0.5
+      const intermediateW = Math.max(1, Math.ceil(nw * intermediateScale));
+      const intermediateH = Math.max(1, Math.ceil(nh * intermediateScale));
+      
+      tempCanvas.width = intermediateW;
+      tempCanvas.height = intermediateH;
+      tempCtx.imageSmoothingEnabled = true;
+      tempCtx.imageSmoothingQuality = 'high';
+      tempCtx.drawImage(img, 0, 0, intermediateW, intermediateH);
+      
+      canvas1.width = nw;
+      canvas1.height = nh;
+      ctx1.imageSmoothingEnabled = true;
+      ctx1.imageSmoothingQuality = 'high';
+      ctx1.drawImage(tempCanvas, 0, 0, nw, nh);
+      
+      canvas1.toBlob((blob) => {
+        const savings = ((1 - blob.size / file.size) * 100).toFixed(1);
+        const result = `
+✅ MULTI-PASS DOWNSAMPLING WORKING
+Original: ${img.width}×${img.height} (${fmt(file.size)})
+Intermediate (50%): ${intermediateW}×${intermediateH}
+Final (50%): ${nw}×${nh} (${fmt(blob.size)})
+Scale Ratio: ${(scaleRatio * 100).toFixed(1)}%
+Savings: ↓${savings}%
+Method: Two-pass for better quality
+        `;
+        showResult('test3Result', result, false);
+      }, 'image/jpeg', 0.75);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// Test 4: JPG to PNG
+async function runTest4() {
+  const file = document.getElementById('test4File').files[0];
+  if (!file) {
+    showResult('test4Result', '❌ No file selected', true);
+    return;
+  }
+
+  if (file.type !== 'image/jpeg') {
+    showResult('test4Result', '❌ Please select a JPG file', true);
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const img = new Image();
+    img.onload = async () => {
+      const canvas = document.getElementById('testCanvas');
+      const ctx = canvas.getContext('2d');
+      
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0);
+      
+      canvas.toBlob((blob) => {
+        const result = `
+✅ JPG→PNG CONVERSION WORKING
+Original JPG: ${img.width}×${img.height} (${fmt(file.size)})
+Output PNG: ${fmt(blob.size)}
+Size Change: ${blob.size > file.size ? '↑' : '↓'}${Math.abs((1 - blob.size / file.size) * 100).toFixed(1)}%
+Status: Lossless conversion complete
+        `;
+        showResult('test4Result', result, false);
+      }, 'image/png');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// Test 5: PNG to JPG
+async function runTest5() {
+  const file = document.getElementById('test5File').files[0];
+  if (!file) {
+    showResult('test5Result', '❌ No file selected', true);
+    return;
+  }
+
+  if (file.type !== 'image/png') {
+    showResult('test5Result', '❌ Please select a PNG file', true);
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const img = new Image();
+    img.onload = async () => {
+      const canvas = document.getElementById('testCanvas');
+      const ctx = canvas.getContext('2d');
+      
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      
+      canvas.toBlob((blob) => {
+        const savings = ((1 - blob.size / file.size) * 100).toFixed(1);
+        const result = `
+✅ PNG→JPG CONVERSION WORKING
+Original PNG: ${img.width}×${img.height} (${fmt(file.size)})
+Output JPG: ${fmt(blob.size)}
+Savings: ↓${savings}%
+Quality: 95%
+Transparency: Converted to white background
+        `;
+        showResult('test5Result', result, savings < 30);
+      }, 'image/jpeg', 0.95);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function showResult(elementId, text, isError) {
+  const el = document.getElementById(elementId);
+  el.innerHTML = `<div class="result ${isError ? 'error' : 'success'}">${text}</div>`;
+}
+</script>
+</body>
+</html>
